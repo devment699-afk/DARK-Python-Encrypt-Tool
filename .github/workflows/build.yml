@@ -1,0 +1,58 @@
+name: Build DARK DEVEL ENC APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up JDK 8 for Buildozer sdkmanager
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+
+      - name: Install Buildozer dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip python3-setuptools python3-dev build-essential libssl-dev libffi-dev python3-venv libltdl-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev ccache libncurses5 libstdc++6 zlib1g-dev
+          pip install --upgrade pip
+          pip install buildozer cython==0.29.33
+
+      - name: Link SDK for Buildozer
+        run: |
+          mkdir -p /home/runner/.buildozer/android/platform
+          ln -sf /usr/local/lib/android/sdk /home/runner/.buildozer/android/platform/android-sdk
+          ls -la /home/runner/.buildozer/android/platform/android-sdk/build-tools/ || true
+          ls -la /usr/local/lib/android/sdk/build-tools/ || true
+
+      - name: Build APK
+        env:
+          JAVA_HOME: /usr/lib/jvm/temurin-8-jdk-amd64
+        run: |
+          buildozer android debug --verbose
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DARK-DEVEL-ENC-APK
+          path: bin/*.apk
